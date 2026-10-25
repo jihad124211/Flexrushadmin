@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const f = (id, label, val, type = 'text', step = '') => '<div class="form-group"><label>' + label + '</label><input type="' + type + '"' + (step ? ' step="any"' : '') + ' id="' + id + '" value="' + esc(val) + '"></div>';
     page('settings', '<h3>App Settings</h3><div class="card">' +
       f('botUsername', 'Bot Username (without @)', c.botUsername) +
-      '<hr><h4>Ad Settings</h4>' + f('adZoneId', 'Ad Network Zone ID', c.adZoneId) +
+      '<hr><h4>Ad Settings</h4>' + f('adZoneId', 'Adsgram Block ID (default 55910)', c.adZoneId) +
       '<div class="form-group"><label>Welcome Message</label><textarea id="welcomeMessage">' + esc(c.welcomeMessage) + '</textarea></div>' +
       '<hr><h4>Earning Settings</h4>' + f('adValue', 'Value per Ad', c.adValue || 0, 'number', 1) + f('referralBonus', 'Referral Bonus', c.referralBonus || 0, 'number', 1) + f('dailyAdLimit', 'Daily Ad Limit', c.dailyAdLimit || 0, 'number') + f('adsPerBreak', 'Ads Before Break', c.adsPerBreak || 0, 'number') + f('breakDuration', 'Break Duration (minutes)', c.breakDuration || 0, 'number') +
       '<hr><h4>Withdrawal Settings</h4>' + f('minimumWithdrawReferrals', 'Minimum Referrals for Withdraw', c.minimumWithdrawReferrals || 0, 'number') +
@@ -252,4 +252,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 </body>
-  </html>
+</html>
