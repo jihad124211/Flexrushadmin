@@ -170,8 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const c = (await T(db.ref('config').once('value'))).val() || {};
     const f = (id, label, val, type = 'text', step = '') => '<div class="form-group"><label>' + label + '</label><input type="' + type + '"' + (step ? ' step="any"' : '') + ' id="' + id + '" value="' + esc(val) + '"></div>';
     page('settings', '<h3>App Settings</h3><div class="card">' +
-      f('botUsername', 'Bot Username (without @)', c.botUsername) +
-      f('appShortName', 'Mini App Short Name (from BotFather /newapp, default: app)', c.appShortName || 'app') +
+      f('botUsername', 'Bot Username (without @)', c.botUsername || 'flexrush_bot') +
+      f('appShortName', 'Mini App Short Name (leave EMPTY if Main Mini App is set in BotFather)', c.appShortName || '') +
       '<hr><h4>Ad Settings</h4>' + f('adZoneId', 'Adsgram Block ID (default 55910)', c.adZoneId) +
       '<div class="form-group"><label>Welcome Message</label><textarea id="welcomeMessage">' + esc(c.welcomeMessage) + '</textarea></div>' +
       '<hr><h4>Earning Settings</h4>' + f('adValue', 'Value per Ad', c.adValue || 0, 'number', 1) + f('referralBonus', 'Referral Bonus', c.referralBonus || 0, 'number', 1) + f('dailyAdLimit', 'Daily Ad Limit', c.dailyAdLimit || 0, 'number') + f('adsPerBreak', 'Ads Before Break', c.adsPerBreak || 0, 'number') + f('breakDuration', 'Break Duration (minutes)', c.breakDuration || 0, 'number') +
@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
       const n = id => parseFloat($(id).value) || 0, i = id => parseInt($(id).value) || 0;
       await db.ref('config').update({
-        botUsername: $('botUsername').value.trim().replace(/^@/, ''), appShortName: $('appShortName').value.trim() || 'app', adZoneId: $('adZoneId').value.trim(),
+        botUsername: $('botUsername').value.trim().replace(/^@/, ''), appShortName: $('appShortName').value.trim(), adZoneId: $('adZoneId').value.trim(),
         welcomeMessage: $('welcomeMessage').value, adValue: n('adValue'), referralBonus: n('referralBonus'),
         dailyAdLimit: i('dailyAdLimit'), adsPerBreak: i('adsPerBreak'), breakDuration: i('breakDuration'),
         minimumWithdrawReferrals: i('minimumWithdrawReferrals'), withdrawMethods
