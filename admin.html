@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLEX RUSH - Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+:root{--primary:#2980B9;--secondary:#1565C0;--light:#ECF0F1;--dark:#1976D2;--success:#27AE60;--danger:#C0392B;--surface:#fff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:var(--light)}
+#top-bar{background:var(--secondary);color:#fff;padding:0 15px;display:flex;align-items:center;height:60px;position:sticky;top:0;z-index:1000}
+#menu-toggle{background:none;border:0;color:#fff;font-size:1.5rem;cursor:pointer}
+#page-title{font-size:1.2rem;margin-left:15px;color:#fff;margin-bottom:0}
+#sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;background:var(--secondary);color:#fff;z-index:2000;transform:translateX(-100%);transition:transform .3s;display:flex;flex-direction:column}
+#sidebar.open{transform:none}
+#sidebar-header{padding:20px;text-align:center;position:relative}
+#sidebar-header h2{font-size:1.2rem;letter-spacing:1px}
+.close-btn{position:absolute;top:15px;right:20px;font-size:1.8rem;cursor:pointer}
+.nav-menu{list-style:none}
+.nav-menu li{padding:15px 20px;cursor:pointer;border-left:4px solid transparent;transition:.2s}
+.nav-menu li:hover,.nav-menu li.active{background:var(--dark);border-left-color:#fff}
+.nav-menu li i{margin-right:12px;width:20px;text-align:center}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1999;display:none}
+#overlay.show{display:block}
+#main-content{padding:20px}
+.page{animation:fi .4s}@keyframes fi{from{opacity:0}to{opacity:1}}
+.card{background:var(--surface);border-radius:8px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:20px}
+h1,h3,h4{color:var(--secondary);margin-bottom:15px}
+table{width:100%;border-collapse:collapse}
+thead{display:none}
+tr{display:block;margin-bottom:15px;border:1px solid #ddd;border-radius:5px;padding:10px}
+td{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #eee;gap:10px}
+td:last-child{border-bottom:0}
+td::before{content:attr(data-label);font-weight:700;margin-right:10px}
+.action-buttons{text-align:right;width:100%}
+.btn{padding:8px 12px;border:0;border-radius:5px;color:#fff;cursor:pointer;margin:2px;font-family:inherit}
+.btn-success{background:var(--success)}.btn-danger{background:var(--danger)}.btn-primary{background:var(--primary)}
+.btn:disabled{opacity:.5;cursor:wait}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;margin-bottom:5px;font-weight:500}
+.form-group input,.form-group textarea{width:100%;padding:12px;border:1px solid #ccc;border-radius:5px;font-family:inherit}
+.dynamic-item-list{list-style:none}
+.dynamic-item-list li{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--light);gap:10px}
+.mg{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+.err{border-left:4px solid var(--danger)}
+hr{margin:18px 0;border:0;border-top:1px solid #ddd}
+@media(min-width:768px){
+ body{display:flex}
+ #top-bar{display:none}
+ #sidebar{position:static;transform:none;width:250px;flex:none}
+ .close-btn{display:none}
+ #content-wrapper{flex:1;min-width:0}
+ #main-content{padding:30px}
+ thead{display:table-header-group}
+ tr{display:table-row;margin:0;border:0;padding:0}
+ td{display:table-cell;padding:12px;border-bottom:1px solid #ddd}
+ td::before{display:none}
+ th{text-align:left;padding:12px;border-bottom:2px solid #ddd}
+ .action-buttons{text-align:left}
+}
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div id="sidebar-header"><h2><i class="fas fa-shield-alt"></i> FLEX RUSH</h2><span class="close-btn">&times;</span></div>
+  <ul class="nav-menu">
+    <li data-page="dashboard" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</li>
+    <li data-page="users"><i class="fas fa-users"></i> Users</li>
+    <li data-page="withdrawals"><i class="fas fa-wallet"></i> Pending Withdrawals</li>
+    <li data-page="history"><i class="fas fa-history"></i> Withdrawal History</li>
+    <li data-page="tasks"><i class="fas fa-tasks"></i> Tasks &amp; Links</li>
+    <li data-page="settings"><i class="fas fa-cog"></i> App Settings</li>
+  </ul>
+</aside>
+<div id="overlay"></div>
+<div id="content-wrapper">
+  <header id="top-bar"><button id="menu-toggle" aria-label="Menu"><i class="fas fa-bars"></i></button><h1 id="page-title">Dashboard</h1></header>
+  <main id="main-content"></main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAseG3mSb-EJPQW1FFQq1mOALDqEnp6bC4",
+    authDomain: "flex-rush.firebaseapp.com",
+    databaseURL: "https://flex-rush-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "flex-rush",
+    storageBucket: "flex-rush.firebasestorage.app",
+    messagingSenderId: "707950199303",
+    appId: "1:707950199303:web:0623b468b5579ffdf860a2"
+  };
+  const $ = id => document.getElementById(id);
+  const main = $('main-content'), title = $('page-title'), sidebar = $('sidebar'), overlay = $('overlay');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const money = v => (parseFloat(v) || 0).toFixed(2);
+  const T = (p, ms = 12000) => Promise.race([p, new Promise((_, r) => setTimeout(() => r(new Error('Connection timed out. Check the Firebase databaseURL and internet.')), ms))]);
+
+  let db;
+  try { firebase.initializeApp(firebaseConfig); db = firebase.database(); }
+  catch (e) { main.innerHTML = '<div class="card err"><h3>Firebase failed to start</h3><p>' + esc(e.message) + '</p></div>'; return; }
+
+  const wrap = fn => async (...a) => {
+    try { await fn(...a); }
+    catch (e) {
+      const code = e.code || e.message || e;
+      main.innerHTML = '<div class="card err"><h3>Could not load</h3><p>' + esc(code) + '</p><p style="margin-top:10px">' +
+        (/permission/i.test(code) ? 'Firebase Rules are blocking access. In Firebase Console, open Realtime Database, then Rules, and update them (test-mode rules expire after 30 days).' : 'Check your internet and the Firebase config at the top of this file.') + '</p></div>';
+    }
+  };
+  const page = (id, html) => { main.innerHTML = '<div id="' + id + '" class="page">' + html + '</div>'; };
+  const empty = (n, t) => '<tr><td colspan="' + n + '">' + t + '</td></tr>';
+
+  const renderDashboard = wrap(async () => {
+    main.innerHTML = '<div class="card"><h3>Loading...</h3></div>';
+    const [u, w] = await Promise.all([T(db.ref('users').once('value')), T(db.ref('withdrawals/pending').once('value'))]);
+    let sum = 0; w.forEach(c => { sum += parseFloat(c.val().amount) || 0; });
+    page('dashboard', '<div class="card"><h3>Total Users</h3><h1>' + u.numChildren() + '</h1></div><div class="card"><h3>Pending Withdrawals</h3><h1>' + w.numChildren() + '</h1><p>Total: ' + money(sum) + ' TK</p></div>');
+  });
+
+  const renderUsers = wrap(async () => {
+    main.innerHTML = '<div class="card"><h3>Loading Users...</h3></div>';
+    const snap = await T(db.ref('users').once('value')); let rows = '';
+    snap.forEach(c => {
+      const u = c.val();
+      rows += '<tr><td data-label="User">' + esc(u.firstName) + ' ' + esc(u.lastName) + '<br><small>' + esc(u.id || c.key) + '</small></td><td data-label="Balance">' + money(u.balance) + ' TK</td><td data-label="Referrals">' + (u.referrals || 0) + '</td><td data-label="Actions"><div class="action-buttons"><button class="btn btn-primary" data-act="balance" data-id="' + esc(c.key) + '" data-name="' + esc(u.firstName) + '">Edit Balance</button></div></td></tr>';
+    });
+    page('users', '<h3>All Users</h3><div class="card"><table><thead><tr><th>User</th><th>Balance</th><th>Referrals</th><th>Actions</th></tr></thead><tbody>' + (rows || empty(4, 'No users yet')) + '</tbody></table></div>');
+  });
+
+  const renderWithdrawals = wrap(async () => {
+    main.innerHTML = '<div class="card"><h3>Loading Requests...</h3></div>';
+    const snap = await T(db.ref('withdrawals/pending').once('value')); const list = [];
+    snap.forEach(c => { list.push(c.val()); });
+    list.sort((a, b) => b.timestamp - a.timestamp);
+    const rows = list.map(r => '<tr><td data-label="User">' + esc(r.userName) + '<br><small>' + new Date(r.timestamp).toLocaleString() + '</small></td><td data-label="Amount"><b>' + money(r.amount) + ' TK</b><br><small>' + esc(r.method) + ' | ' + esc(r.account) + '</small></td><td data-label="Actions"><div class="action-buttons"><button class="btn btn-success" data-act="wd" data-id="' + esc(r.id) + '" data-do="approve">Approve</button><button class="btn btn-danger" data-act="wd" data-id="' + esc(r.id) + '" data-do="reject">Reject</button></div></td></tr>').join('');
+    page('withdrawals', '<h3>Pending Withdrawals</h3><div class="card"><table><thead><tr><th>User &amp; Date</th><th>Amount &amp; Details</th><th>Actions</th></tr></thead><tbody>' + (rows || empty(3, 'No pending requests')) + '</tbody></table></div>');
+  });
+
+  const histRows = (snap, label) => {
+    const l = []; snap.forEach(c => { l.push(c.val()); }); l.sort((a, b) => b.timestamp - a.timestamp);
+    return l.map(r => '<tr><td data-label="User">' + esc(r.userName) + '</td><td data-label="Amount">' + money(r.amount) + '</td><td data-label="Method">' + esc(r.method) + '</td><td data-label="Date">' + new Date(r.timestamp).toLocaleDateString() + '</td><td data-label="Status">' + label + '</td></tr>').join('') || empty(5, 'None yet.');
+  };
+  const renderHistory = wrap(async () => {
+    main.innerHTML = '<div class="card"><h3>Loading History...</h3></div>';
+    const [c, r] = await Promise.all(['completed', 'rejected'].map(s => T(db.ref('withdrawals/' + s).orderByChild('timestamp').limitToLast(100).once('value'))));
+    const head = '<thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th></tr></thead>';
+    page('history', '<h3>Withdrawal History</h3><div class="card"><h4>Completed</h4><table>' + head + '<tbody>' + histRows(c, 'Completed') + '</tbody></table></div><div class="card"><h4>Rejected</h4><table>' + head + '<tbody>' + histRows(r, 'Rejected') + '</tbody></table></div>');
+  });
+
+  const loadList = async type => {
+    const box = $(type + '-list'), snap = await T(db.ref('config/' + type).once('value')); const items = [];
+    snap.forEach(c => { items.push(Object.assign({ key: c.key }, c.val())); }); items.reverse();
+    box.innerHTML = '<h4>Current ' + type + '</h4>' + (items.length ? '<ul class="dynamic-item-list">' + items.map(i => '<li><span>' + esc(i.name) + (i.reward ? ' <small>(' + esc(i.reward) + ' BDT)</small>' : '') + '</span><button class="btn btn-danger" data-act="del" data-type="' + type + '" data-id="' + esc(i.key) + '"><i class="fas fa-trash"></i></button></li>').join('') + '</ul>' : '<p>No ' + type + ' yet.</p>');
+  };
+  const renderTasks = wrap(async () => {
+    page('tasks', '<h3>Manage Tasks &amp; Links</h3>' +
+      '<div class="card" id="tasks-list"><h4>Loading tasks...</h4></div>' +
+      '<div class="card"><h4>Add New Task</h4><div class="form-group"><input id="task-name" placeholder="Task name (e.g. Join Telegram)"></div><div class="form-group"><input id="task-url" placeholder="URL (https://...)"></div><div class="form-group"><input id="task-reward" type="number" step="any" placeholder="Reward amount"></div><div class="form-group"><input id="task-icon" placeholder="Icon image URL (optional)"></div><button class="btn btn-primary" data-act="addTask">Add Task</button></div>' +
+      '<div class="card" id="links-list"><h4>Loading links...</h4></div>' +
+      '<div class="card"><h4>Add Support Link</h4><p style="margin-bottom:10px;font-size:.85rem">Shown on the Support page of the app. Icon: image URL or a Font Awesome class like fa-headset.</p><div class="form-group"><input id="link-name" placeholder="Button name (e.g. Official Channel)"></div><div class="form-group"><input id="link-url" placeholder="URL (https://...)"></div><div class="form-group"><input id="link-icon" placeholder="Icon (optional)"></div><button class="btn btn-primary" data-act="addLink">Add Link</button></div>');
+    await Promise.all([loadList('tasks'), loadList('links')]);
+  });
+
+  const methodRow = (m = {}) => '<div class="mg"><input value="' + esc(m.name) + '" placeholder="Method name"><input type="number" step="any" value="' + esc(m.min) + '" placeholder="Min amount"><button class="btn btn-danger" data-act="rmMethod">X</button></div>';
+  const renderSettings = wrap(async () => {
+    const c = (await T(db.ref('config').once('value'))).val() || {};
+    const f = (id, label, val, type = 'text', step = '') => '<div class="form-group"><label>' + label + '</label><input type="' + type + '"' + (step ? ' step="any"' : '') + ' id="' + id + '" value="' + esc(val) + '"></div>';
+    page('settings', '<h3>App Settings</h3><div class="card">' +
+      f('botUsername', 'Bot Username (without @)', c.botUsername) +
+      '<hr><h4>Ad Settings</h4>' + f('adZoneId', 'Ad Network Zone ID', c.adZoneId) +
+      '<div class="form-group"><label>Welcome Message</label><textarea id="welcomeMessage">' + esc(c.welcomeMessage) + '</textarea></div>' +
+      '<hr><h4>Earning Settings</h4>' + f('adValue', 'Value per Ad', c.adValue || 0, 'number', 1) + f('referralBonus', 'Referral Bonus', c.referralBonus || 0, 'number', 1) + f('dailyAdLimit', 'Daily Ad Limit', c.dailyAdLimit || 0, 'number') + f('adsPerBreak', 'Ads Before Break', c.adsPerBreak || 0, 'number') + f('breakDuration', 'Break Duration (minutes)', c.breakDuration || 0, 'number') +
+      '<hr><h4>Withdrawal Settings</h4>' + f('minimumWithdrawReferrals', 'Minimum Referrals for Withdraw', c.minimumWithdrawReferrals || 0, 'number') +
+      '<div id="methods">' + (c.withdrawMethods || []).map(methodRow).join('') + '</div><button class="btn btn-primary" data-act="addMethod">+ Add Method</button>' +
+      '<hr><button class="btn btn-success" style="width:100%;padding:15px" data-act="save">Save All Settings</button></div>');
+  });
+
+  const actions = {
+    async balance(b) {
+      const v = parseFloat(prompt('Amount to ADD for ' + b.dataset.name + '.\nUse a negative value to subtract (e.g. -50).'));
+      if (isNaN(v)) return;
+      await db.ref('users/' + b.dataset.id + '/balance').set(firebase.database.ServerValue.increment(v));
+      alert('Balance updated!'); renderUsers();
+    },
+    async wd(b) {
+      const act = b.dataset.do;
+      if (!confirm((act === 'approve' ? 'Approve' : 'Reject') + ' this request?')) return;
+      const ref = db.ref('withdrawals/pending/' + b.dataset.id), req = (await ref.once('value')).val();
+      if (!req) return alert('Request not found (already handled?).');
+      const status = act === 'approve' ? 'completed' : 'rejected';
+      await db.ref('withdrawals/' + status + '/' + b.dataset.id).set(Object.assign({}, req, { status }));
+      await ref.remove();
+      if (act === 'reject') await db.ref('users/' + req.userId + '/balance').set(firebase.database.ServerValue.increment(parseFloat(req.amount) || 0));
+      alert('Request ' + status + '.'); renderWithdrawals();
+    },
+    async addTask() {
+      const d = { name: $('task-name').value.trim(), url: $('task-url').value.trim(), reward: parseFloat($('task-reward').value), icon: $('task-icon').value.trim() };
+      if (!d.name || !/^https?:\/\//i.test(d.url) || !(d.reward > 0)) return alert('Name, a valid https URL and a reward are required.');
+      await db.ref('config/tasks').push(d); alert('Task added!'); renderTasks();
+    },
+    async addLink() {
+      const d = { name: $('link-name').value.trim(), url: $('link-url').value.trim(), icon: $('link-icon').value.trim() };
+      if (!d.name || !/^https?:\/\//i.test(d.url)) return alert('Name and a valid https URL are required.');
+      await db.ref('config/links').push(d); alert('Link added!'); renderTasks();
+    },
+    async del(b) {
+      if (!confirm('Delete this item?')) return;
+      await db.ref('config/' + b.dataset.type + '/' + b.dataset.id).remove(); renderTasks();
+    },
+    addMethod() { $('methods').insertAdjacentHTML('beforeend', methodRow()); },
+    rmMethod(b) { b.parentElement.remove(); },
+    async save() {
+      const withdrawMethods = [];
+      document.querySelectorAll('#methods .mg').forEach(g => {
+        const name = g.children[0].value.trim(), min = parseFloat(g.children[1].value);
+        if (name && min) withdrawMethods.push({ name, min });
+      });
+      const n = id => parseFloat($(id).value) || 0, i = id => parseInt($(id).value) || 0;
+      await db.ref('config').update({
+        botUsername: $('botUsername').value.trim().replace(/^@/, ''), adZoneId: $('adZoneId').value.trim(),
+        welcomeMessage: $('welcomeMessage').value, adValue: n('adValue'), referralBonus: n('referralBonus'),
+        dailyAdLimit: i('dailyAdLimit'), adsPerBreak: i('adsPerBreak'), breakDuration: i('breakDuration'),
+        minimumWithdrawReferrals: i('minimumWithdrawReferrals'), withdrawMethods
+      });
+      alert('Settings saved!');
+    }
+  };
+  main.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]');
+    if (!b || b.disabled) return;
+    b.disabled = true;
+    try { await actions[b.dataset.act](b); }
+    catch (err) { alert('Error: ' + (err.code || err.message)); }
+    finally { b.disabled = false; }
+  });
+
+  const pages = { dashboard: renderDashboard, users: renderUsers, withdrawals: renderWithdrawals, history: renderHistory, tasks: renderTasks, settings: renderSettings };
+  const links = document.querySelectorAll('.nav-menu li');
+  const closeMenu = () => { sidebar.classList.remove('open'); overlay.classList.remove('show'); };
+  links.forEach(l => l.addEventListener('click', () => {
+    links.forEach(x => x.classList.remove('active')); l.classList.add('active');
+    title.textContent = l.textContent.trim(); pages[l.dataset.page](); closeMenu();
+  }));
+  $('menu-toggle').onclick = () => { sidebar.classList.add('open'); overlay.classList.add('show'); };
+  document.querySelector('.close-btn').onclick = closeMenu;
+  overlay.onclick = closeMenu;
+  renderDashboard();
+});
+</script>
+</body>
+  </html>
